@@ -128,3 +128,24 @@ Created a `cleanup` Tekton Task in `.tekton/tasks.yml` that deletes all files fr
 
 ### Why this matters
 A cleanup task ensures each pipeline run starts with a clean slate. Without it, leftover files from previous runs could cause unpredictable behavior (e.g., stale build artifacts, cached dependencies).
+
+## Exercise 6: Create Lint Tekton Task
+
+### What I did
+Added an `eslint` Tekton Task to `.tekton/tasks.yml` that installs dependencies and runs ESLint inside a `node:20-alpine` container.
+
+### Key concepts learned
+
+- **Params**: Tekton tasks can accept parameters to make them reusable. The `args` param has a default value (`src/ tests/ --ext *.js`) but can be overridden when the task is called in a pipeline.
+- Unlike the cleanup task (which used `alpine:3`), the lint task uses `node:20-alpine` because it needs Node.js and npm to install dependencies and run ESLint.
+- Each Tekton task runs in its own container, so dependencies must be installed within the step — there's no shared state between tasks unless you use workspaces.
+- `npm ci` is run first because the workspace only contains the cloned source code, not `node_modules`.
+
+### Tekton vs GitHub Actions
+| Aspect | GitHub Actions | Tekton |
+|--------|---------------|--------|
+| Runs on | GitHub-hosted VMs | Kubernetes pods |
+| Defined in | `.github/workflows/` | `.tekton/` |
+| Unit of work | Step | Step (inside a Task) |
+| Reusability | Actions from marketplace | Parameterized Tasks |
+| Environment | Pre-built VM images | Container images |
