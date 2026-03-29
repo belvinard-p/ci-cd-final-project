@@ -149,3 +149,22 @@ Added an `eslint` Tekton Task to `.tekton/tasks.yml` that installs dependencies 
 | Unit of work | Step | Step (inside a Task) |
 | Reusability | Actions from marketplace | Parameterized Tasks |
 | Environment | Pre-built VM images | Container images |
+
+## Exercise 7: Create Test Tekton Task
+
+### What I did
+Added a `jest-test` Tekton Task to `.tekton/tasks.yml` that installs dependencies and runs the Jest test suite inside a `node:20-alpine` container.
+
+### Key concepts learned
+
+- The `jest-test` task follows the same pattern as `eslint` — same image, same workspace, parameterized with a default value (`-v` for verbose output).
+- The `-v` flag makes Jest show each individual test case result, which is useful for debugging in a pipeline.
+- Both `eslint` and `jest-test` run `npm ci` independently because each Tekton task runs in its own pod — they don't share `node_modules`.
+
+### Tekton Tasks Summary (Exercises 5–7)
+The `.tekton/tasks.yml` file now contains 3 tasks:
+1. **cleanup** → wipes the workspace clean (alpine:3)
+2. **eslint** → installs deps + runs linting (node:20-alpine)
+3. **jest-test** → installs deps + runs tests (node:20-alpine)
+
+These tasks will be wired together into a Tekton Pipeline in a later exercise.
