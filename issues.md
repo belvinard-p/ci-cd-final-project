@@ -60,3 +60,26 @@ Added a `Lint with ESLint` step to the CI workflow that runs `npm run lint` afte
 
 ### Why this matters
 Linting in CI enforces consistent code quality across the team. No one can merge code that violates the project's coding standards, even by accident.
+
+## Exercise 3: Add Test Step to CI Workflow
+
+### What I did
+Added a `Run unit tests with Jest` step to the CI workflow that runs `npm test` after linting.
+
+### Key concepts learned
+
+- **Jest** is a JavaScript testing framework. Combined with **Supertest**, it can test HTTP endpoints by simulating requests against the Express app without starting a real server.
+- The test suite covers all CRUD operations (Create, Read, Update, Delete), the health check, and edge cases like duplicates and missing counters.
+- Tests run *after* linting — there's no point running tests if the code doesn't even pass basic quality checks.
+- If any test fails, the CI pipeline fails, preventing broken code from being merged.
+
+### Why this matters
+Automated testing in CI is the core of Continuous Integration. Every code change is validated by running the full test suite, giving confidence that new changes don't break existing functionality (regression testing).
+
+### CI Workflow Summary (Exercises 1–3)
+The complete pipeline now runs on every push/PR to `main`:
+1. **Checkout** → clone the repo
+2. **Setup Node.js** → install Node 20
+3. **Install dependencies** → `npm ci`
+4. **Lint** → `npm run lint`
+5. **Test** → `npm test`
