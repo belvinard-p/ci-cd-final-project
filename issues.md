@@ -17,6 +17,34 @@ The `setup.sh` script was written for Linux (Debian/Ubuntu) and used Linux-speci
 - Removed `sudo apt-get` install commands since Node.js and npm were already installed on the system
 - Replaced `.bashrc` exports with direct `export` commands compatible with Git Bash on Windows
 
+## Issue #2: `gh` command not recognized in PowerShell
+
+**Error:**
+```
+gh : The term 'gh' is not recognized as the name of a cmdlet, function, script file, or operable program.
+```
+
+**Cause:**
+The GitHub CLI (`gh`) was not installed on the system. It's a separate tool from Git — Git handles version control, while `gh` is for interacting with GitHub (viewing workflow runs, creating PRs, etc.).
+
+**Solution:**
+- `winget` and `choco` were also not available on this system
+- Download the installer manually from https://cli.github.com/ and run the `.msi` file
+- After install, restart the terminal and run `gh auth login`
+- Alternative: skip `gh` entirely and check workflow runs in the browser at `https://github.com/<username>/ci-cd-final-project/actions`
+
+## Issue #3: `gh auth login` — one-time code not visible
+
+**Error:**
+After running `gh auth login`, the browser asked for a code but it wasn't obvious where to find it.
+
+**Cause:**
+The one-time code is displayed in the terminal, not in the browser. It's easy to miss if you switch to the browser too quickly.
+
+**Solution:**
+Look back at the terminal — the code is shown as `XXXX-XXXX` before the browser opens. If missed, run `gh auth login` again to get a new code.
+`gh run list`
+`https://cli.github.com/`
 ---
 
 # Takeaways
@@ -83,3 +111,20 @@ The complete pipeline now runs on every push/PR to `main`:
 3. **Install dependencies** → `npm ci`
 4. **Lint** → `npm run lint`
 5. **Test** → `npm test`
+
+## Exercise 5: Create Cleanup Tekton Task
+
+### What I did
+Created a `cleanup` Tekton Task in `.tekton/tasks.yml` that deletes all files from a workspace to ensure the CD pipeline starts fresh.
+
+### Key concepts learned
+
+- **Tekton** is a Kubernetes-native CI/CD framework that runs pipelines as containers inside an OpenShift/Kubernetes cluster — unlike GitHub Actions which runs on GitHub-hosted VMs.
+- **Task**: The basic building block in Tekton. A Task defines one or more steps that run sequentially in containers.
+- **Workspaces**: Shared storage between tasks in a pipeline. The `source` workspace holds the cloned repo code.
+- **Steps**: Each step runs in its own container image. The `cleanup` task uses `alpine:3` (a minimal Linux image) to run a shell script.
+- **securityContext**: `runAsUser: 0` runs the step as root, which is needed to delete all files regardless of ownership.
+- The cleanup script is careful not to `rm -rf /` — it only deletes the *contents* of the workspace, not the workspace directory itself.
+
+### Why this matters
+A cleanup task ensures each pipeline run starts with a clean slate. Without it, leftover files from previous runs could cause unpredictable behavior (e.g., stale build artifacts, cached dependencies).
