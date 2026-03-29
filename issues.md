@@ -45,3 +45,18 @@ a pull request is opened on the `main` branch.
 
 ### Why this matters
 Without CI, developers must manually run tests and checks before merging code. A CI workflow automates this — every push is validated automatically, catching bugs early before they reach production.
+
+## Exercise 2: Add Linting Step to CI Workflow
+
+### What I did
+Added a `Lint with ESLint` step to the CI workflow that runs `npm run lint` after installing dependencies.
+
+### Key concepts learned
+
+- **Linting** is static code analysis — it checks code for style issues, potential bugs, and bad practices *without running it*.
+- **ESLint** is the standard linter for JavaScript/Node.js. The rules are configured in `.eslintrc.js`.
+- By adding linting to the CI pipeline, every push is automatically checked for code quality. If linting fails, the pipeline fails and the code won't be merged.
+- The order of steps matters: linting runs *after* `npm ci` because ESLint and its plugins are installed as dev dependencies.
+
+### Why this matters
+Linting in CI enforces consistent code quality across the team. No one can merge code that violates the project's coding standards, even by accident.
