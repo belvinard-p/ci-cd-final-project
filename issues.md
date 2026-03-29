@@ -43,8 +43,20 @@ The one-time code is displayed in the terminal, not in the browser. It's easy to
 
 **Solution:**
 Look back at the terminal — the code is shown as `XXXX-XXXX` before the browser opens. If missed, run `gh auth login` again to get a new code.
-`gh run list`
-`https://cli.github.com/`
+
+## Issue #4: Confusion about where to run `kubectl apply` for Exercise 8
+
+**Error:**
+Thought Docker Desktop with Kubernetes needed to be enabled locally to run `kubectl apply -f .tekton/tasks.yml`.
+
+**Cause:**
+Exercise 8 is meant to be done inside the **Coursera OpenShift lab environment**, not on the local machine. The lab provides a pre-configured terminal with `kubectl` and `oc` already connected to a cloud-hosted OpenShift cluster.
+
+**Solution:**
+- Open the Coursera lab (Module 4)
+- Use the lab's built-in terminal
+- Clone the repo there: `git clone https://github.com/<username>/ci-cd-final-project.git`
+- Then run `kubectl apply -f .tekton/tasks.yml` from the lab terminal
 ---
 
 # Takeaways
@@ -168,3 +180,67 @@ The `.tekton/tasks.yml` file now contains 3 tasks:
 3. **jest-test** → installs deps + runs tests (node:20-alpine)
 
 These tasks will be wired together into a Tekton Pipeline in a later exercise.
+
+## Exercise 8: Create OpenShift Pipeline
+
+### What I did
+Installed the 3 custom Tekton tasks into OpenShift, created a PVC for shared storage, and built a full CD pipeline with 6 tasks: cleanup → git-clone → eslint → jest-test → buildah → deploy.
+
+### Key concepts learned
+
+- **kubectl apply -f** installs Tekton task definitions into the cluster so they can be used in pipelines.
+- **PersistentVolumeClaim (PVC)**: Shared storage that persists across pipeline tasks. All tasks read/write to the same `oc-lab-pvc` volume through the `output` workspace.
+- **Cluster Tasks vs Custom Tasks**: `git-clone`, `buildah`, and `openshift-client` are pre-installed cluster tasks. `cleanup`, `eslint`, and `jest-test` are our custom tasks.
+- **Buildah**: A tool that builds OCI/Docker container images inside Kubernetes without needing Docker daemon — it's daemonless and rootless.
+- **Pipeline flow**:
+  1. `cleanup` → fresh workspace
+  2. `git-clone` → pull code from GitHub
+  3. `eslint` → lint the code
+  4. `jest-test` → run tests
+  5. `buildah` → build Docker image and push to registry
+  6. `openshift-client` → deploy the image to the cluster using `oc create deployment`
+- **`--dry-run=client -o yaml | oc apply -f -`**: This pattern generates the deployment YAML without sending it to the server, then applies it. This makes the command idempotent — it creates the deployment if it doesn't exist, or updates it if it does.
+
+### Full CI/CD Pipeline Summary
+```
+Developer pushes code
+  → GitHub Actions (CI): checkout → lint → test
+  → Tekton on OpenShift (CD): cleanup → clone → lint → test → build image → deploy
+```
+
+## Issue #5: OpenShift Console authentication error
+
+**Error:**
+Opening the OpenShift console URL returned "An authentication error occurred."
+
+**Cause:**
+The Coursera lab environment sometimes restricts direct browser access to the OpenShift console. The lab terminal is already authenticated, but the browser session is not.
+
+**Solution:**
+- Skip the console UI and create the pipeline from the terminal using `oc apply -f -` and `tkn` commands
+- Use `tkn pipelinerun describe --last` for the screenshot instead of the console UI
+
+**Security Note:**
+Never share tokens (`oc whoami --show-token`) publicly. In a real project, an exposed token gives full access to your cluster. Always treat tokens like passwords.
+
+## Exercise 8 Result: Pipeline Run Succeeded ✓
+
+All 6 tasks completed successfully:
+
+| Task | Duration | Status |
+|------|----------|--------|
+| cleanup | 10s | ✓ Succeeded |
+| git-clone | 19s | ✓ Succeeded |
+| eslint | 19m03s | ✓ Succeeded |
+| jest-test | 17m39s | ✓ Succeeded |
+| buildah | 1m02s | ✓ Succeeded |
+| deploy | 9s | ✓ Succeeded |
+
+**Total duration:** 20m46s
+
+### Observations
+- `eslint` and `jest-test` ran **in parallel** (both started at the same time after git-clone) — this is a Tekton optimization since they don't depend on each other.
+- The long duration for eslint/jest-test (17-19min) is due to `npm ci` installing all dependencies inside the container each time.
+- `buildah` built the Docker image and pushed it to the OpenShift internal registry.
+- `deploy` created the deployment using the built image.
+- The app was deployed as `counter-service` in the OpenShift cluster.
